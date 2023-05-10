@@ -71,33 +71,12 @@ class LoginView(APIView):
 		refresh = RefreshToken.for_user(user)
 		return Response({'access_token': str(refresh.access_token)})
 
-class ProductSearchView(APIView):
-	@swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter('name', openapi.IN_QUERY, description="Name of the product", type='string'),
-            openapi.Parameter('brand', openapi.IN_QUERY, description="Brand of the product", type='string'),
-            openapi.Parameter('category', openapi.IN_QUERY, description="category of the product", type='string'),
-            openapi.Parameter('min_price', openapi.IN_QUERY, description="Minimum price of the product", type='number'),
-            openapi.Parameter('max_price', openapi.IN_QUERY, description="Maximum price of the product", type='number'),
-            openapi.Parameter('quantity', openapi.IN_QUERY, description="quantity of the product", type='number'),
-        ]
-    )
-    # permission_classes = (IsAuthenticated,)
-	def get(self, request):
-		serializer = ProductSearchSerializer(data=request.query_params)
-		if serializer.is_valid():
-			products = Product.objects.filter(price__gte=serializer.validated_data.get('min_price'),
-                                              price__lte=serializer.validated_data.get('max_price'),
-                                              **serializer.validated_data)
-			data = {'products': products.values()}
-			return Response(data, status=status.HTTP_200_OK)
-		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet):
 	
-	# permission_classes = (permissions.IsAuthenticated,)
+	permission_classes = (permissions.IsAuthenticated,)
 	pagination_class = LimitOffsetPagination
 	serializer_class = ProductSearchSerializer
 	queryset = Product.objects.all()
@@ -187,7 +166,7 @@ class ProductViewSet(
 		return queryset
 
 class CartView(APIView):
-	# permission_classes = (permissions.IsAuthenticated,)
+	permission_classes = (permissions.IsAuthenticated,)
     def get(self, request):
         cart, created = Cart.objects.get_or_create(user=request.user.id)
         cart_items = cart.cartitem_set.all()
@@ -290,6 +269,7 @@ class ImageProcessor:
             product.image_sizes.save(filename, ImageFile(image_data))
 
 class ProductCreateView(APIView):
+	permission_classes = (permissions.IsAuthenticated,)
     def post(self, request, format=None):
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
